@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from intent import Intent
+from src.intent import Intent
 
 
 class DetectionStatus(str, Enum):

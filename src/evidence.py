@@ -13,8 +13,7 @@ It must NOT calculate or invent business numbers.
 
 from typing import Any, Dict, List
 
-from intent import Intent
-
+from src.intent import Intent
 
 ANALYTIC_RULES = {
     Intent.STOCKOUT_RISK: {
