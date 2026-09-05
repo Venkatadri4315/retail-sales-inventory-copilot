@@ -12,13 +12,67 @@ Python + SQLite perform all business calculations.
 Gemini only explains the evidence.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from src.intent import Intent
 from src.intent_detector import detect_intent, DetectionStatus
 from src import analytics
 from src.evidence import build_evidence
 from src.gemini_client import generate_answer
+
+
+def find_product_id(question: str) -> Optional[str]:
+    """
+    Find a product ID from a manager question.
+
+    The product name is matched against the actual products
+    stored in the local SQLite database.
+
+    Returns:
+        Matching product_id if exactly one product is identified.
+        None if no product can be identified.
+    """
+
+    if not isinstance(question, str) or not question.strip():
+        return None
+
+    question_lower = question.strip().lower()
+
+    conn = analytics.get_connection()
+
+    try:
+        rows = conn.execute(
+            """
+            SELECT product_id, product_name
+            FROM products
+            ORDER BY LENGTH(product_name) DESC
+            """
+        ).fetchall()
+
+        matches = []
+
+        for row in rows:
+            product_id = row["product_id"]
+            product_name = row["product_name"]
+
+            if product_name.lower() in question_lower:
+                matches.append(
+                    {
+                        "product_id": product_id,
+                        "product_name": product_name,
+                    }
+                )
+
+        if not matches:
+            return None
+
+        # Product names are checked from longest to shortest.
+        # If multiple names match because one is contained inside
+        # another, prefer the longest exact product-name match.
+        return matches[0]["product_id"]
+
+    finally:
+        conn.close()
 
 
 def handle_question(question: str) -> Dict[str, Any]:
@@ -91,7 +145,40 @@ def handle_question(question: str) -> Dict[str, Any]:
 
     elif detection.intent == Intent.PRODUCT_PERFORMANCE:
 
-        analytics_result = analytics.get_product_performance()
+        # -----------------------------------------------------------
+        # Product Performance requires a specific product.
+        #
+        # Find the product from the manager's question using the
+        # actual product catalogue in SQLite.
+        # -----------------------------------------------------------
+
+        product_id = find_product_id(question)
+
+        if product_id is None:
+
+            evidence_package = build_evidence(
+                intent=Intent.CANNOT_ANSWER,
+                question=question,
+                analytics_result=[],
+            )
+
+            return {
+                "question": question,
+                "intent": Intent.PRODUCT_PERFORMANCE.value,
+                "status": "unsupported",
+                "confidence": "high",
+                "matched_rule": detection.matched_rule,
+                "evidence": evidence_package,
+                "answer": (
+                    "I cannot identify the specific product reliably "
+                    "from the available retail data. Please provide "
+                    "the product name."
+                ),
+            }
+
+        analytics_result = analytics.get_product_performance(
+            product_id=product_id
+        )
 
     elif detection.intent == Intent.GENERAL_INVENTORY:
 
@@ -258,7 +345,7 @@ def print_result(result: Dict[str, Any]) -> None:
 if __name__ == "__main__":
 
     test_questions = [
-        "Which products are overstocked?",
+        "How is Wheat Flour 5kg performing?",
     ]
 
     for question in test_questions:
@@ -266,4 +353,3 @@ if __name__ == "__main__":
         result = handle_question(question)
 
         print_result(result)
-        
