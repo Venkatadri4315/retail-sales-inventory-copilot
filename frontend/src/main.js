@@ -385,12 +385,40 @@ async function askCopilot() {
 
             const days =
               item.days_of_stock !== undefined
-                ? `Days: ${escapeHtml(item.days_of_stock)}`
+                ? `Days: ${
+                    item.days_of_stock === null
+                      ? "N/A"
+                      : escapeHtml(item.days_of_stock)
+                  }`
                 : "";
 
             const risk =
               item.risk_level
                 ? `Risk: ${escapeHtml(item.risk_level)}`
+                : "";
+
+            /*
+             * Product performance evidence uses sales metrics
+             * instead of inventory metrics.
+             */
+            const unitsSold =
+              item.total_units_sold !== undefined
+                ? `Units sold: ${escapeHtml(item.total_units_sold)}`
+                : "";
+
+            const revenue =
+              item.total_revenue !== undefined
+                ? `Revenue: ₹${Number(
+                    item.total_revenue
+                  ).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}`
+                : "";
+
+            const avgDailyUnits =
+              item.avg_daily_units !== undefined
+                ? `Avg/day: ${escapeHtml(item.avg_daily_units)}`
                 : "";
 
             let categoryLabel = "";
@@ -429,10 +457,16 @@ async function askCopilot() {
                 }
 
                 <div class="evidence-item-metrics">
+
                   ${stock ? `<span>${stock}</span>` : ""}
                   ${reorder ? `<span>${reorder}</span>` : ""}
                   ${days ? `<span>${days}</span>` : ""}
                   ${risk ? `<span>${risk}</span>` : ""}
+
+                  ${unitsSold ? `<span>${unitsSold}</span>` : ""}
+                  ${revenue ? `<span>${revenue}</span>` : ""}
+                  ${avgDailyUnits ? `<span>${avgDailyUnits}</span>` : ""}
+
                 </div>
 
               </div>
