@@ -5,10 +5,11 @@ Responsibilities:
 1. Detect the manager's intent.
 2. Route the intent to deterministic analytics.
 3. Build a grounded evidence package.
-4. Return structured evidence for the Gemini explanation layer.
+4. Send only grounded evidence to Gemini.
+5. Return a manager-friendly answer.
 
-Gemini does NOT access the database directly.
-Gemini will later explain only the evidence produced here.
+Python + SQLite perform all business calculations.
+Gemini only explains the evidence.
 """
 
 from typing import Any, Dict
@@ -17,6 +18,7 @@ from src.intent import Intent
 from src.intent_detector import detect_intent, DetectionStatus
 from src import analytics
 from src.evidence import build_evidence
+from src.gemini_client import generate_answer
 
 
 def handle_question(question: str) -> Dict[str, Any]:
@@ -27,9 +29,9 @@ def handle_question(question: str) -> Dict[str, Any]:
         -> Intent Detection
         -> Deterministic Analytics
         -> Evidence Builder
+        -> Gemini Explanation
 
-    Returns:
-        A structured result containing grounded evidence.
+    Gemini never accesses the database directly.
     """
 
     # ---------------------------------------------------------------
@@ -57,6 +59,10 @@ def handle_question(question: str) -> Dict[str, Any]:
             "confidence": detection.confidence,
             "matched_rule": detection.matched_rule,
             "evidence": evidence_package,
+            "answer": (
+                "I cannot answer this reliably from the available "
+                "retail data."
+            ),
         }
 
     # ---------------------------------------------------------------
@@ -110,6 +116,10 @@ def handle_question(question: str) -> Dict[str, Any]:
             "confidence": "high",
             "matched_rule": None,
             "evidence": evidence_package,
+            "answer": (
+                "I cannot answer this reliably from the available "
+                "retail data."
+            ),
         }
 
     # ---------------------------------------------------------------
@@ -123,17 +133,49 @@ def handle_question(question: str) -> Dict[str, Any]:
     )
 
     # ---------------------------------------------------------------
-    # Step 5: Return complete structured result
+    # Step 5: Ask Gemini to explain ONLY the evidence
     # ---------------------------------------------------------------
 
-    return {
+    answer = None
+    gemini_error = None
+
+    try:
+
+        answer = generate_answer(
+            question=question,
+            evidence_package=evidence_package,
+        )
+
+    except Exception as exc:
+
+        # Do not allow a Gemini/API failure to break the application.
+        # The deterministic evidence remains available.
+
+        gemini_error = str(exc)
+
+        answer = (
+            "Gemini explanation is temporarily unavailable. "
+            "The deterministic evidence is still available."
+        )
+
+    # ---------------------------------------------------------------
+    # Step 6: Return complete result
+    # ---------------------------------------------------------------
+
+    result = {
         "question": question,
         "intent": detection.intent.value,
         "status": detection.status.value,
         "confidence": detection.confidence,
         "matched_rule": detection.matched_rule,
         "evidence": evidence_package,
+        "answer": answer,
     }
+
+    if gemini_error:
+        result["gemini_error"] = gemini_error
+
+    return result
 
 
 def print_result(result: Dict[str, Any]) -> None:
@@ -153,12 +195,18 @@ def print_result(result: Dict[str, Any]) -> None:
     print(f"Rule       : {result['matched_rule']}")
 
     print()
+    print("ANSWER")
+    print("-" * 70)
+    print(result["answer"])
+
+    print()
     print("EVIDENCE PACKAGE")
     print("-" * 70)
 
     evidence_package = result["evidence"]
 
     print(f"Answerable : {evidence_package.get('answerable')}")
+
     print()
     print("Calculation rule:")
     print(evidence_package.get("calculation_rule"))
@@ -197,20 +245,20 @@ def print_result(result: Dict[str, Any]) -> None:
     else:
         print(analytics_evidence)
 
+    if "gemini_error" in result:
+
+        print()
+        print("GEMINI ERROR")
+        print("-" * 70)
+        print(result["gemini_error"])
+
     print("=" * 70)
 
 
 if __name__ == "__main__":
 
     test_questions = [
-        "What products are running out?",
         "Which products are overstocked?",
-        "Show me dead stock.",
-        "Which products have sales spikes?",
-        "Which products have sales drops?",
-        "Give me an inventory overview.",
-        "What are our competitors doing?",
-        "What happened?",
     ]
 
     for question in test_questions:
