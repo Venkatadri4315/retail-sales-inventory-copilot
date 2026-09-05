@@ -93,13 +93,40 @@ def handle_question(question: str) -> Dict[str, Any]:
     detection = detect_intent(question)
 
     # ---------------------------------------------------------------
-    # Step 2: Handle unsupported or ambiguous questions
+    # Step 2: Handle ambiguous questions separately
     # ---------------------------------------------------------------
 
-    if detection.status != DetectionStatus.CLEAR:
+    if detection.status == DetectionStatus.AMBIGUOUS:
 
         evidence_package = build_evidence(
-            intent=detection.intent,
+            intent=Intent.CANNOT_ANSWER,
+            question=question,
+            analytics_result=[],
+        )
+
+        return {
+            "question": question,
+            "intent": detection.intent.value,
+            "status": detection.status.value,
+            "confidence": detection.confidence,
+            "matched_rule": detection.matched_rule,
+            "evidence": evidence_package,
+            "answer": (
+                "I can help with that, but I need a little more detail. "
+                "Please specify what you want to know, such as stock-out "
+                "risks, overstock, non-moving products, sales spikes, "
+                "sales drops, or the performance of a specific product."
+            ),
+        }
+
+    # ---------------------------------------------------------------
+    # Step 3: Handle unsupported questions
+    # ---------------------------------------------------------------
+
+    if detection.status == DetectionStatus.UNSUPPORTED:
+
+        evidence_package = build_evidence(
+            intent=Intent.CANNOT_ANSWER,
             question=question,
             analytics_result=[],
         )
@@ -118,7 +145,7 @@ def handle_question(question: str) -> Dict[str, Any]:
         }
 
     # ---------------------------------------------------------------
-    # Step 3: Route clear intents to deterministic analytics
+    # Step 4: Route clear intents to deterministic analytics
     # ---------------------------------------------------------------
 
     if detection.intent == Intent.STOCKOUT_RISK:
@@ -202,7 +229,7 @@ def handle_question(question: str) -> Dict[str, Any]:
         }
 
     # ---------------------------------------------------------------
-    # Step 4: Build grounded evidence package
+    # Step 5: Build grounded evidence package
     # ---------------------------------------------------------------
 
     evidence_package = build_evidence(
@@ -212,7 +239,7 @@ def handle_question(question: str) -> Dict[str, Any]:
     )
 
     # ---------------------------------------------------------------
-    # Step 5: Ask Gemini to explain ONLY the evidence
+    # Step 6: Ask Gemini to explain ONLY the evidence
     # ---------------------------------------------------------------
 
     answer = None
@@ -239,7 +266,7 @@ def handle_question(question: str) -> Dict[str, Any]:
         )
 
     # ---------------------------------------------------------------
-    # Step 6: Return complete result
+    # Step 7: Return complete result
     # ---------------------------------------------------------------
 
     result = {

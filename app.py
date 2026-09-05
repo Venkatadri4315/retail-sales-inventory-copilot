@@ -127,8 +127,8 @@ class RetailCopilotHandler(BaseHTTPRequestHandler):
                 "overstocked": len(overstocked),
                 "non_moving": len(non_moving),
                 "sales_signals": (
-                    len(sales_spikes) +
-                    len(sales_drops)
+                    len(sales_spikes)
+                    + len(sales_drops)
                 )
             }
 
