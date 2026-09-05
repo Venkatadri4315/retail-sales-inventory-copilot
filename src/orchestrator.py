@@ -29,7 +29,7 @@ def find_product_id(question: str) -> Optional[str]:
     stored in the local SQLite database.
 
     Returns:
-        Matching product_id if exactly one product is identified.
+        Matching product_id if a product is identified.
         None if no product can be identified.
     """
 
@@ -66,9 +66,7 @@ def find_product_id(question: str) -> Optional[str]:
         if not matches:
             return None
 
-        # Product names are checked from longest to shortest.
-        # If multiple names match because one is contained inside
-        # another, prefer the longest exact product-name match.
+        # Prefer the longest exact product-name match.
         return matches[0]["product_id"]
 
     finally:
@@ -145,13 +143,7 @@ def handle_question(question: str) -> Dict[str, Any]:
 
     elif detection.intent == Intent.PRODUCT_PERFORMANCE:
 
-        # -----------------------------------------------------------
         # Product Performance requires a specific product.
-        #
-        # Find the product from the manager's question using the
-        # actual product catalogue in SQLite.
-        # -----------------------------------------------------------
-
         product_id = find_product_id(question)
 
         if product_id is None:
@@ -242,7 +234,8 @@ def handle_question(question: str) -> Dict[str, Any]:
 
         answer = (
             "Gemini explanation is temporarily unavailable. "
-            "The deterministic evidence is still available."
+            "The answer below is based on deterministic analysis "
+            "of the local retail data."
         )
 
     # ---------------------------------------------------------------
@@ -330,6 +323,7 @@ def print_result(result: Dict[str, Any]) -> None:
                 print(f"  {item}")
 
     else:
+
         print(analytics_evidence)
 
     if "gemini_error" in result:

@@ -83,6 +83,12 @@ INTENT_RULES = {
         "dead stock",
         "not selling",
         "no recent sales",
+        "no sales in the last 30 days",
+        "not sold in the last 30 days",
+        "no sales for 30 days",
+        "not sold for 30 days",
+        "products have not sold",
+        "products that have not sold",
         "sitting unsold",
         "unsold inventory",
         "unsold stock",
@@ -353,6 +359,12 @@ if __name__ == "__main__":
         "Give me an inventory overview.",
         "What needs attention in inventory?",
         "What should I focus on?",
+
+        # Non-moving variations
+        "Which products have not sold in the last 30 days?",
+        "Which products have no sales in the last 30 days?",
+        "Show products that have not sold.",
+        "Which products have no recent sales?",
 
         # Clearly unsupported
         "What will our sales be next year?",
