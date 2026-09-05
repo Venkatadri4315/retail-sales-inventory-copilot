@@ -132,6 +132,8 @@ INTENT_RULES = {
     ],
 
     Intent.GENERAL_INVENTORY: [
+        "what needs attention",
+        "what needs attention in inventory",
         "inventory overview",
         "inventory summary",
         "inventory situation",
@@ -142,6 +144,7 @@ INTENT_RULES = {
         "stock doing",
         "overall inventory",
         "overall stock",
+        "what should i focus on",
     ],
 }
 
@@ -348,6 +351,8 @@ if __name__ == "__main__":
         "Which products have sales spikes?",
         "Which products have sales drops?",
         "Give me an inventory overview.",
+        "What needs attention in inventory?",
+        "What should I focus on?",
 
         # Clearly unsupported
         "What will our sales be next year?",
